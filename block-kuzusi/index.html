@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法少女ブロック崩し</title>
+    <style>
+        body {
+            text-align: center;
+            background-color: #222;
+            color: white;
+        }
+        canvas {
+            background: black;
+            display: block;
+            margin: auto;
+        }
+        #character {
+            width: 300px;
+            height: 400px;
+            margin: 20px auto;
+            background-size: cover;
+        }
+    </style>
+</head>
+<body>
+    <h1>魔法少女ブロック崩し</h1>
+    <div id="character" style="background-image: url('stage1.png');"></div>
+    <canvas id="gameCanvas" width="480" height="320"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        let ballX = canvas.width / 2;
+        let ballY = canvas.height - 30;
+        let ballDX = 2;
+        let ballDY = -2;
+        let ballRadius = 10;
+        
+        let paddleHeight = 10;
+        let paddleWidth = 75;
+        let paddleX = (canvas.width - paddleWidth) / 2;
+        let rightPressed = false;
+        let leftPressed = false;
+        
+        const brickRowCount = 3;
+        const brickColumnCount = 5;
+        const brickWidth = 75;
+        const brickHeight = 20;
+        const brickPadding = 10;
+        const brickOffsetTop = 30;
+        const brickOffsetLeft = 30;
+        
+        let bricks = [];
+        for (let c = 0; c < brickColumnCount; c++) {
+            bricks[c] = [];
+            for (let r = 0; r < brickRowCount; r++) {
+                bricks[c][r] = { x: 0, y: 0, status: 1 };
+            }
+        }
+        
+        const characterStages = ['stage1.png', 'stage2.png', 'stage3.png', 'stage4.png'];
+        let currentStage = 0;
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#f00";
+            ctx.fill();
+            ctx.closePath();
+        }
+        
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+            ctx.fillStyle = "#00f";
+            ctx.fill();
+            ctx.closePath();
+        }
+        
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                        let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+                        ctx.beginPath();
+                        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                        ctx.fillStyle = "#0f0";
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+        
+        function collisionDetection() {
+            let count = 0;
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    let b = bricks[c][r];
+                    if (b.status === 1) {
+                        count++;
+                        if (ballX > b.x && ballX < b.x + brickWidth && ballY > b.y && ballY < b.y + brickHeight) {
+                            ballDY = -ballDY;
+                            b.status = 0;
+                        }
+                    }
+                }
+            }
+            let totalBricks = brickRowCount * brickColumnCount;
+            let brokenBricks = totalBricks - count;
+            let stageIndex = Math.floor((brokenBricks / totalBricks) * characterStages.length);
+            if (stageIndex !== currentStage && stageIndex < characterStages.length) {
+                currentStage = stageIndex;
+                document.getElementById("character").style.backgroundImage = `url('${characterStages[currentStage]}')`;
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBricks();
+            drawBall();
+            drawPaddle();
+            collisionDetection();
+            
+            if (ballX + ballDX > canvas.width - ballRadius || ballX + ballDX < ballRadius) {
+                ballDX = -ballDX;
+            }
+            if (ballY + ballDY < ballRadius) {
+                ballDY = -ballDY;
+            } else if (ballY + ballDY > canvas.height - ballRadius) {
+                if (ballX > paddleX && ballX < paddleX + paddleWidth) {
+                    ballDY = -ballDY;
+                } else {
+                    document.location.reload();
+                }
+            }
+            
+            ballX += ballDX;
+            ballY += ballDY;
+            
+            if (rightPressed && paddleX < canvas.width - paddleWidth) {
+                paddleX += 7;
+            } else if (leftPressed && paddleX > 0) {
+                paddleX -= 7;
+            }
+            requestAnimationFrame(draw);
+        }
+        
+        document.addEventListener("keydown", event => {
+            if (event.key === "Right" || event.key === "ArrowRight") rightPressed = true;
+            if (event.key === "Left" || event.key === "ArrowLeft") leftPressed = true;
+        });
+        document.addEventListener("keyup", event => {
+            if (event.key === "Right" || event.key === "ArrowRight") rightPressed = false;
+            if (event.key === "Left" || event.key === "ArrowLeft") leftPressed = false;
+        });
+        
+        draw();
+    </script>
+</body>
+</html>
